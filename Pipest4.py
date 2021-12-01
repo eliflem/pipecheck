@@ -1,126 +1,148 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
-#import libraries
 import streamlit as st
 import requests as r
 import pandas as pd
-import datetime
-import os
-import streamlit as st
-import base64
+import time
+
+st.title("Banabikurye Outbound Deal Yaratma Aracı")
+st.subheader("Aşağıdaki formda yer alan tüm bilgileri doldurtuktan sonra 'Create Deal' butonuna basınız.")
 
 
-# In[ ]:
+
+with st.form(key='my_form'):
+    org_name = st.text_input('Organization name')
+    org_region = st.text_input('Region')
+    org_email = st.text_input('Email')
+    org_phone = st.text_input('Phone')
+    org_phone2 = st.text_input('Other Phone')
+    legal_type = st.radio("Legal type", ("Business", "Individual", "No answer"))
+    del_est = st.radio("Delivery estimation", ("5'den fazla", "5'den az", "Individual"))
+    industry = st.selectbox("Industry", ('Autos / Parts & Services', 'Beauty & Fitness', 'Bevarages', 'Cakes & Bakeries', 'Consumer Electronics / Accessories', 'Courier Lead', 'Dental Products', 'Documents', 'E-Commerce', 'Fashion & Lifestyle', 'Flowers', 'Food - Fresh Products', 'Food - Restaurant', 'Gifts & Souvenir', 'Grocery', 'Grocery - Pet Products', 'Healthcare / Pharmacy', 'Individuals', 'Laundry Services', 'Media & Communication', 'No Answer/ No Response', 'Optics', 'Others', 'Supermarket'))
+    notes = st.text_input("Notes")
+    lost_reason = st.selectbox("Lost reason", ('High Price', 'Service Issues', 'In House Courier', 'Same Day Delivery not Required', 'Different Logistics Need', 'Thermal Bag Requirement', 'Can not reach/No Response', 'Courier Lead', 'Delivery Services not required', 'Wrong lead - Outside service area', 'Wrong Lead - Individual', 'Has another active DV account'))
+    submit_button = st.form_submit_button(label='Create Deal')
+    
+if submit_button:
+   st.subheader("Teşekkürler")
+   
+#create organization func
+def create_org(org_name, org_email, org_phone, org_region):
+    organization = {'owner_id':11539544,
+            "name": org_name,
+           "b1faf8cf25454aa8690d7b761def5b29be2c9b07": org_email,
+           "d3ace2189605037b38016a44957b190f45a924b9": org_phone,
+           "208c219904faba22afb629d63d1c9b89c516cd13": org_region,
+           "visible_to": '5'}
+    org = r.post("https://api.pipedrive.com/v1/organizations?api_token=st.secrets["token"]", json=organization)
+    result_1 = org.json()
+    org_id = result_1["data"]["id"]
+    return(org_id)
+
+#create person func
+def create_person(org_name, org_email, org_phone, org_region, org_id):
+    person = {'owner_id':11539544,
+              "org_id": org_id,
+              "name": org_name,
+             'phone': [{'label': 'work', 'value': org_phone, 'primary': True}],
+              'email': [{'label': 'work',
+              'value': org_email,
+              'primary': True}],
+             "0507562a28a905fbe5917476d9b800fbf7dc1bdd": org_region,
+               'visible_to': '5'
+    }
+    per = r.post("https://api.pipedrive.com/v1/persons?api_token=st.secrets["token"]", json=person)
+    result_1 = per.json()
+    per_id= result_1["data"]["id"]
+    return(per_id)
 
 
-st.title("Pipedrive Activity Time Checker")
-
-
-# In[3]:
-
-
-filter_id = st.text_input("Please enter filter id:")
-token = st.text_input("Please enter your token:")
-from datetime import date
-today = date.today()
-d1 = today.strftime("%B %d")
-print("Thank you! Please do not close this window, it'll be closed automatically. When this window is closed, your csv file will be saved as "+d1)
-
-
-# In[8]:
-
-
-filters=r.get("https://api.pipedrive.com/v1/deals?filter_id="+filter_id+"&status=all_not_deleted&start=-1&limit=1000&api_token="+token)
-filter_deals = filters.json()
-
-created = {}
-ids = []
-for deal in filter_deals["data"]:
-    deal_ids = deal["id"]
-    ids.append(deal_ids)
-    created[deal_ids] = deal["add_time"] #dealcreated
-
-deals_ids = [str(i) for i in ids] #deal ids
-
-
-# In[4]:
-
-
-urls=[]
-
-for deal in deals_ids:
-    urls.append("https://api.pipedrive.com/v1/deals/"+deal+"/activities?api_token="+token)
-
-deals=[]
-for url in urls:
-    response = r.get(url)
-    deals.append(response.json())
-
-
-# In[5]:
-
-
-results = {}
-for deal in deals:
-    if deal["data"] is not None:
-        for data in deal["data"]:
-            id = data["deal_id"]
-            if id in results:
-                if data["add_time"] < results[id]:
-                    results[id] = data["add_time"] 
-            else:
-                results[id] = data["add_time"]  
-
-
-# In[6]:
-
-
-final = {}
-for x in created:
-    if x in results:
-        created_datetime = datetime.datetime.strptime(created[x], '%Y-%m-%d %H:%M:%S')
-        result_datetime = datetime.datetime.strptime(results[x], '%Y-%m-%d %H:%M:%S')
-        duration = result_datetime - created_datetime
-        duration_sec = duration.total_seconds()
-        minutes = divmod(duration_sec, 60)[0]
-        final[x] = minutes
-    else:
-        final[x] = "no activity"
-
-
-# In[ ]:
-
-
-st.write(final)
-
-
-# In[ ]:
-
-
-#path = os.path.dirname(os.path.realpath("__file__"))
-df = pd.DataFrame(list(final.items()), columns = ["Deal ID", "Difference(min)"])
-csv = df.to_csv(index=False)
-b64 = base64.b64encode(csv.encode()).decode()
-st.markdown('### **⬇️ Download output CSV File **')
-href = f'<a href="data:file/csv;base64,{b64}">Download CSV File</a> (right-click and save as ".csv")'
-st.markdown(href, unsafe_allow_html=True)
-
-
-# In[ ]:
-
-
-#csv = df.to_csv("results.csv", index=False)
-#f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
-
-
-# In[9]:
-
-
-#path = os.path.dirname(os.path.realpath("__file__"))
-#df = pd.DataFrame(list(final.items()), columns = ["Deal ID", "Difference(min)"])
-#df.to_csv(path+"\\"+d1+".csv", index=False)
-
+if legal_type == 'Individual':
+   org_id = create_org(org_name, org_email, org_phone, org_region)
+   person_id = create_person(org_name, org_email, org_phone, org_region, org_id)
+   deal = {"user_id": 11539544,
+            "title": org_name+" Deal",
+            "org_id": org_id,
+            "person_id": person_id,
+            "visible_to": '5',
+            "stage_id": 163,
+            "status": 'lost',
+            "pipeline_id": 24,
+            "3a662cbe0cfc0973a1eea76537b9c7515597f853": "TR Outsource Outbound",
+            "17da88af586cac66b9aca3f151bf3dbc33b48ba7": 104, #legal type
+            "fbe218c1b8ec237d98c16f6f618ab3f8407c0718": 464, #industry
+            "89512fda9a0ecb6eae1c93acffaaf1decdd2647b": 226,
+            "lost_reason": "Wrong Lead - Individual",
+            "label": 992}
+   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets["token"]", json=deal)
+   result_2 = deals.json()
+   deal_id=result_2["data"]["id"]
+   st.write("Deal ID: ", deal_id)
+   act = {"deal_id": deal_id,
+       "person_id": person_id,
+       "org_id": org_id,
+       "note": notes+" "+org_phone2,
+       "user_id": 11539544,
+        "done": 1}
+   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets["token"]", json=act)
+   res = actt.json()
+   st.write(res["success"])
+elif legal_type == "No answer":
+   org_id = create_org(org_name, org_email, org_phone, org_region)
+   person_id = create_person(org_name, org_email, org_phone, org_region, org_id)
+   deal = {"user_id": 11539544,
+            "title": org_name+" Deal",
+            "org_id": org_id,
+            "person_id": person_id,
+            "visible_to": '5',
+            "stage_id": 163,
+            "status": 'lost',
+            "pipeline_id": 24,
+            "3a662cbe0cfc0973a1eea76537b9c7515597f853": "TR Outsource Outbound",
+            "17da88af586cac66b9aca3f151bf3dbc33b48ba7": 460,
+            "fbe218c1b8ec237d98c16f6f618ab3f8407c0718": 466, 
+            "89512fda9a0ecb6eae1c93acffaaf1decdd2647b": 226,
+            "lost_reason": "Can not reach/No Response",
+            "label": 992}
+   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets["token"]", json=deal)
+   result_2 = deals.json()
+   deal_id=result_2["data"]["id"]
+   st.write("Deal ID: ", deal_id)
+   act = {"deal_id": deal_id,
+       "person_id": person_id,
+       "org_id": org_id,
+       "note": notes+" "+org_phone2,
+       "user_id": 11539544,
+        "done": 1}
+   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets["token"]", json=act)
+   res = actt.json()
+   st.write(res["success"])
+elif legal_type == "Business":
+   org_id = create_org(org_name, org_email, org_phone, org_region)
+   person_id = create_person(org_name, org_email, org_phone, org_region, org_id)
+   deal = {"user_id": 11539544,
+            "title": org_name+" Deal",
+            "org_id": org_id,
+            "person_id": person_id,
+            "visible_to": '5',
+            "stage_id": 297,
+            "status": 'open',
+            "pipeline_id": 3,
+            "3a662cbe0cfc0973a1eea76537b9c7515597f853": "TR Outsource Outbound",
+            "17da88af586cac66b9aca3f151bf3dbc33b48ba7": 105, #legal type
+            "fbe218c1b8ec237d98c16f6f618ab3f8407c0718": industry, 
+            "89512fda9a0ecb6eae1c93acffaaf1decdd2647b": 226,
+            "label": 992}
+   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets["token"]", json=deal)
+   result_2 = deals.json()
+   deal_id=result_2["data"]["id"]
+   st.write("Deal ID: ", deal_id)
+   act = {"deal_id": deal_id,
+       "person_id": person_id,
+       "org_id": org_id,
+       "note": "Notlar: "+notes+" Other phone:"+org_phone2+" Estimated dels: "+del_est,
+       "user_id": 11539544,
+        "done": 1}
+   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets["token"]", json=act)
+   res = actt.json()
+   st.write(res["success"])
+else:
+    st.write("hiçbir şey olmamışsa bile bir şey olmuş olabilir")
