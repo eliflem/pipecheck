@@ -82,7 +82,7 @@ if legal_type == 'Individual':
        "note": notes+" "+org_phone2,
        "user_id": 11539544,
         "done": 1}
-   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets["token"]", json=act)
+   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets['token']", json=act)
    res = actt.json()
    st.write(res["success"])
 elif legal_type == "No answer":
@@ -102,7 +102,7 @@ elif legal_type == "No answer":
             "89512fda9a0ecb6eae1c93acffaaf1decdd2647b": 226,
             "lost_reason": "Can not reach/No Response",
             "label": 992}
-   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets["token"]", json=deal)
+   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets['token']", json=deal)
    result_2 = deals.json()
    deal_id=result_2["data"]["id"]
    st.write("Deal ID: ", deal_id)
@@ -112,7 +112,7 @@ elif legal_type == "No answer":
        "note": notes+" "+org_phone2,
        "user_id": 11539544,
         "done": 1}
-   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets["token"]", json=act)
+   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets['token']", json=act)
    res = actt.json()
    st.write(res["success"])
 elif legal_type == "Business":
@@ -131,7 +131,7 @@ elif legal_type == "Business":
             "fbe218c1b8ec237d98c16f6f618ab3f8407c0718": industry, 
             "89512fda9a0ecb6eae1c93acffaaf1decdd2647b": 226,
             "label": 992}
-   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets["token"]", json=deal)
+   deals = r.post("https://api.pipedrive.com/v1/deals?api_token=st.secrets['token']", json=deal)
    result_2 = deals.json()
    deal_id=result_2["data"]["id"]
    st.write("Deal ID: ", deal_id)
@@ -141,7 +141,7 @@ elif legal_type == "Business":
        "note": "Notlar: "+notes+" Other phone:"+org_phone2+" Estimated dels: "+del_est,
        "user_id": 11539544,
         "done": 1}
-   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets["token"]", json=act)
+   actt = r.post("https://api.pipedrive.com/v1/activities?api_token=st.secrets['token']", json=act)
    res = actt.json()
    st.write(res["success"])
 else:
